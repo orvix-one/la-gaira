@@ -125,9 +125,8 @@ SELECT
   END                                                           AS canal_venta,
   true                                                          AS canal_es_inferido,
   any_value(parse_int(ope)) = 11                                AS es_fiscal,
-  any_value(parse_num(total_factura)) > 0
-    AND abs(sum(parse_num(total_neto)) - 2 * any_value(parse_num(total_factura))) < 0.01
-                                                                  AS es_duplicado_sospechoso,
+  abs(sum(parse_num(total_neto)) - any_value(parse_num(total_factura))) > 0.02
+                                                                   AS en_cuarentena,
   any_value(forma_pago)                                        AS forma_pago,
   any_value(familia_clientes)                                  AS familia_clientes,
   nullif(any_value(trim(nit)), '0')                             AS nit,
@@ -154,7 +153,7 @@ SELECT
   parse_num(it)                                  AS it,
   coalesce(parse_num(descuento), 0)              AS descuento,
   parse_num(total_neto) = 0                      AS es_sin_cargo,
-  false                                           AS es_duplicado_sospechoso,
+  false                                           AS en_cuarentena,
   _archivo,
   _fila
 FROM stg_ventas_raw
@@ -165,24 +164,11 @@ WHERE operacion IS NOT NULL AND parse_int(operacion) IS NOT NULL
 -- 5. DERIVADAS DE SEGUNDA PASADA — necesitan que fact_venta_linea ya exista completo.
 -- =========================================================================
 
--- Marca la mitad sobrante de las líneas repetidas SOLO dentro de los documentos que ya
--- calificaron como sospechosos (SUM(líneas) ~= 2 x total_factura). Las repeticiones
--- legítimas (mismo producto pedido dos veces, fuera de esos documentos) no se tocan.
-UPDATE fact_venta_linea SET es_duplicado_sospechoso = true
-WHERE venta_linea_id IN (
-  SELECT venta_linea_id FROM (
-    SELECT
-      venta_linea_id,
-      row_number() OVER (
-        PARTITION BY operacion_id, producto_codigo, cantidad, precio_unitario, importe
-        ORDER BY _archivo, _fila
-      ) AS n
-    FROM fact_venta_linea
-    WHERE operacion_id IN (
-      SELECT operacion_id FROM fact_venta_documento WHERE es_duplicado_sospechoso
-    )
-  ) numeradas
-  WHERE n % 2 = 0
+-- La operación es la unidad indivisible de publicación. Si el detalle no reconcilia con
+-- Total Factura, todas sus líneas quedan en cuarentena; no se corrige ni publica una mitad.
+UPDATE fact_venta_linea SET en_cuarentena = true
+WHERE operacion_id IN (
+  SELECT operacion_id FROM fact_venta_documento WHERE en_cuarentena
 );
 
 -- Un producto es "siempre sin cargo" si nunca se vendió a importe > 0 en toda la carga

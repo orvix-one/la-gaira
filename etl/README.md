@@ -37,7 +37,7 @@ Si todo sale bien (con o sin warnings), la base se reemplaza atómicamente.
 4. Ejecuta `transform.sql`: castea los VARCHAR de staging con reglas explícitas (fecha:
    serial de Excel o texto `%d/%m/%Y`; número: sin separador de miles), puebla las
    dimensiones y los dos hechos, y calcula las derivadas de negocio (`es_fiscal`,
-   `es_sin_cargo`, `canal_venta`, `es_duplicado_sospechoso`).
+   `es_sin_cargo`, `canal_venta`, `en_cuarentena`).
 5. Ejecuta `checks.sql`: valida la carga y escribe cada hallazgo en `etl_issue` con una
    severidad. Cualquier `error` aborta la corrida.
 6. Escribe `etl_run`, imprime un resumen en consola y vuelca
@@ -82,14 +82,15 @@ en `Razón Social`, línea `PARA LLEVAR`) porque el origen no trae un campo de c
 confirmar el patrón con el cliente — si el ERP termina exponiendo el dato real, esta
 heurística se retira sin tocar el resto del esquema.
 
-## Duplicados de factura
+## Operaciones en cuarentena
 
-Algunos documentos del archivo de origen traen sus líneas duplicadas completas (todo el
-ticket repetido dos veces), de forma que `SUM(líneas) ≈ 2 × Total Factura`. `transform.sql`
-detecta esos documentos y marca la mitad sobrante de cada línea repetida como
-`es_duplicado_sospechoso = true`, sin borrar nada. `vw_ventas` excluye esas líneas y
-`vw_tickets` excluye esos documentos; el dato crudo completo sigue en
-`fact_venta_linea`/`fact_venta_documento` para quien necesite auditarlo.
+La operación es la unidad indivisible de publicación. Si `SUM(líneas)` no reconcilia con
+`Total Factura` dentro de una tolerancia de 0,02, `transform.sql` marca el documento y
+todas sus líneas como `en_cuarentena = true`. `vw_ventas` y `vw_tickets` excluyen la
+operación completa, igual que las anuladas; no se deduplica ni corrige silenciosamente una
+mitad aunque el patrón parezca un bloque duplicado. El dato íntegro permanece en
+`fact_venta_linea`/`fact_venta_documento` para auditoría, y `etl_issue` reporta por separado
+las operaciones y líneas excluidas.
 
 ## Reintentar / limpiar
 

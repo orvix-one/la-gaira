@@ -142,7 +142,7 @@ CREATE TABLE fact_venta_documento (
   canal_venta               VARCHAR NOT NULL,   -- heurístico: SALON | PEDIDOSYA | YANGO | LLEVAR
   canal_es_inferido         BOOLEAN NOT NULL DEFAULT true,  -- siempre true en v1: no viene del origen, se infiere por texto
   es_fiscal                 BOOLEAN NOT NULL,   -- copiado de dim_tipo_venta al momento de la carga
-  es_duplicado_sospechoso   BOOLEAN NOT NULL DEFAULT false,  -- SUM(líneas) ~= 2 x total_factura: ver etl/transform.sql
+  en_cuarentena              BOOLEAN NOT NULL DEFAULT false,  -- detalle no reconcilia con total_factura: operación completa no publicable
   forma_pago                VARCHAR,            -- 'CONTADO' salvo 1 fila en la muestra
   familia_clientes          VARCHAR,            -- 'SIN FAMILIA' salvo 1 fila en la muestra
   nit                       VARCHAR,            -- desambiguar: '0' en el 45% de los documentos, '77777777' genérico en otro 8%
@@ -165,7 +165,7 @@ CREATE TABLE fact_venta_linea (
   it                        DECIMAL(14,2) NOT NULL,
   descuento                 DECIMAL(14,2) NOT NULL,  -- siempre 0 en la muestra
   es_sin_cargo               BOOLEAN NOT NULL,   -- importe = 0: componente de combo, empaque, salsa de delivery o cortesía
-  es_duplicado_sospechoso    BOOLEAN NOT NULL DEFAULT false,  -- mitad sobrante de una línea repetida dentro de un documento sospechoso
+  en_cuarentena               BOOLEAN NOT NULL DEFAULT false,  -- hereda la cuarentena de la operación; nunca se publica parcialmente
   _archivo                   VARCHAR NOT NULL,   -- linaje hasta la fila original
   _fila                      BIGINT  NOT NULL
 );
@@ -195,8 +195,8 @@ CREATE TABLE etl_issue (
 -- 5. CAPA SEMÁNTICA — lo único que la aplicación consulta (src/infrastructure/data).
 -- =========================================================================
 
--- Una fila por línea de venta "limpia": excluye las líneas marcadas como mitad
--- duplicada. Para métricas de documento (ticket promedio, conteo de tickets) usar
+-- Una fila por línea de venta publicada: excluye operaciones completas en cuarentena
+-- y anuladas. Para métricas de documento (ticket promedio, conteo de tickets) usar
 -- vw_tickets en su lugar — sumar total_factura sobre vw_ventas sobre-cuenta por línea.
 CREATE VIEW vw_ventas AS
 SELECT
@@ -236,15 +236,15 @@ JOIN dim_producto p ON p.producto_codigo = l.producto_codigo
 JOIN dim_fecha f ON f.fecha = d.fecha_turno
 JOIN dim_vendedor v ON v.vendedor_codigo = d.vendedor_codigo
 JOIN dim_tipo_venta t ON t.tipo_venta_codigo = d.tipo_venta_codigo
-WHERE NOT l.es_duplicado_sospechoso;
+WHERE NOT d.en_cuarentena AND NOT l.en_cuarentena AND NOT d.anulada;
 
--- Una fila por documento (ticket/factura) "limpio": excluye los documentos marcados
--- como sospechosos de duplicación completa.
+-- Una fila por documento (ticket/factura) publicado: aplica exactamente la misma
+-- frontera de cuarentena y anulaciones que vw_ventas.
 CREATE VIEW vw_tickets AS
 SELECT d.*, f.anio, f.mes, f.anio_mes, f.dia_semana, f.nombre_dia, f.es_fin_de_semana
 FROM fact_venta_documento d
 JOIN dim_fecha f ON f.fecha = d.fecha_turno
-WHERE NOT d.es_duplicado_sospechoso;
+WHERE NOT d.en_cuarentena AND NOT d.anulada;
 
 -- =========================================================================
 -- 6. COMENTARIOS 'desambiguar' — queryables vía duckdb_columns()/information_schema

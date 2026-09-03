@@ -2,26 +2,22 @@ import {
   bucketsDelRango,
   claveBucket,
   granularidadPara,
-  transacciones,
-  unidadesNetas,
   variacion,
   ventasNetas,
   type CoberturaDatos,
-  type FactVentaLinea,
   type FiltrosGlobales,
   type Granularidad,
-  type SalesSource,
+  type TicketVenta,
 } from "@/domain/sales";
+import type { SalesSource } from "@/infrastructure/data/sales-source";
 import {
-  cargarActualYAnterior,
-  filtrarPorSucursal,
+  cargarTicketsActualYAnterior,
   kpisDe,
   serieTemporalDe,
   type PuntoTemporal,
 } from "./compartido";
 
 /** Vista 1 — Ventas General (spec §9.3). */
-
 export interface KpiConVariacion {
   valor: number | null;
   variacion: number | null;
@@ -34,7 +30,6 @@ export interface FilaDesempeno {
   ventas: number;
   unidades: number;
   transacciones: number;
-  /** Variación de ventas vs. el bucket inmediatamente anterior de la misma sucursal. */
   variacionVentas: number | null;
 }
 
@@ -58,21 +53,15 @@ export async function getVentasGeneral(
   filtros: FiltrosGlobales,
   cobertura: CoberturaDatos,
 ): Promise<VentasGeneralView> {
-  const { actual, anterior } = await cargarActualYAnterior(
-    (rango) => source.fetchLineas(rango),
-    filtros,
-  );
-  const lineas = filtrarPorSucursal(actual, filtros);
-  const lineasAnterior = filtrarPorSucursal(anterior, filtros);
-
-  const kpisActual = kpisDe(lineas);
-  const kpisAnterior = kpisDe(lineasAnterior);
-  const tendencia = serieTemporalDe(lineas, filtros);
+  const { actual, anterior } = await cargarTicketsActualYAnterior(source, filtros);
+  const kpisActual = kpisDe(actual);
+  const kpisAnterior = kpisDe(anterior);
+  const tendencia = serieTemporalDe(actual, filtros);
 
   return {
     filtros,
     cobertura,
-    granularidad: granularidadPara(filtros.rango),
+    granularidad: tendencia.granularidad,
     kpis: {
       ventasNetas: {
         valor: kpisActual.ventasNetas,
@@ -95,70 +84,63 @@ export async function getVentasGeneral(
       },
     },
     tendencia: tendencia.puntos,
-    ventasPorSucursal: ventasPorSucursal(lineas),
-    desempeno: tablaDesempeno(lineas, filtros),
+    ventasPorSucursal: ventasPorSucursal(actual),
+    desempeno: tablaDesempeno(actual, filtros),
   };
 }
 
 function ventasPorSucursal(
-  lineas: FactVentaLinea[],
+  tickets: TicketVenta[],
 ): Array<{ sucursal: string; ventas: number }> {
-  const porSucursal = new Map<string, { sucursal: string; lineas: FactVentaLinea[] }>();
-  for (const linea of lineas) {
-    const entrada =
-      porSucursal.get(linea.branchCode) ?? { sucursal: linea.branchName, lineas: [] };
-    entrada.lineas.push(linea);
-    porSucursal.set(linea.branchCode, entrada);
+  const grupos = new Map<string, TicketVenta[]>();
+  for (const ticket of tickets) {
+    const grupo = grupos.get(ticket.sucursal) ?? [];
+    grupo.push(ticket);
+    grupos.set(ticket.sucursal, grupo);
   }
-  return [...porSucursal.values()]
-    .map((e) => ({ sucursal: e.sucursal, ventas: ventasNetas(e.lineas) }))
+  return [...grupos.entries()]
+    .map(([sucursal, grupo]) => ({ sucursal, ventas: ventasNetas(grupo) }))
     .sort((a, b) => b.ventas - a.ventas);
 }
 
-/**
- * Tabla de desempeño: una fila por bucket temporal × sucursal con ventas,
- * unidades, transacciones y variación (spec §9.3). La variación es contra
- * el bucket inmediatamente anterior de la misma sucursal; en el primer
- * bucket del rango se muestra `—`.
- */
-function tablaDesempeno(lineas: FactVentaLinea[], filtros: FiltrosGlobales): FilaDesempeno[] {
+/** Una fila por bucket temporal y sucursal. */
+function tablaDesempeno(
+  tickets: TicketVenta[],
+  filtros: FiltrosGlobales,
+): FilaDesempeno[] {
   const granularidad = granularidadPara(filtros.rango);
   const buckets = bucketsDelRango(filtros.rango, granularidad);
-  const ordenBucket = new Map(buckets.map((b, i) => [b, i]));
+  const ordenBucket = new Map(buckets.map((bucket, index) => [bucket, index]));
+  const grupos = new Map<string, TicketVenta[]>();
 
-  // Agrupa líneas por (bucket, sucursal).
-  const grupos = new Map<string, { periodo: string; code: string; sucursal: string; lineas: FactVentaLinea[] }>();
-  for (const linea of lineas) {
-    const periodo = claveBucket(linea.saleDate, granularidad);
-    if (!ordenBucket.has(periodo)) continue;
-    const clave = `${periodo}|${linea.branchCode}`;
-    const grupo =
-      grupos.get(clave) ?? {
-        periodo,
-        code: linea.branchCode,
-        sucursal: linea.branchName,
-        lineas: [],
-      };
-    grupo.lineas.push(linea);
+  for (const ticket of tickets) {
+    const periodo = claveBucket(ticket.fechaTurno, granularidad);
+    const clave = `${periodo}|${ticket.sucursal}`;
+    const grupo = grupos.get(clave) ?? [];
+    grupo.push(ticket);
     grupos.set(clave, grupo);
   }
 
   const filas: FilaDesempeno[] = [];
-  for (const grupo of grupos.values()) {
-    const indice = ordenBucket.get(grupo.periodo) ?? 0;
+  for (const [clave, grupo] of grupos) {
+    const [periodo, sucursal] = clave.split("|");
+    const indice = ordenBucket.get(periodo) ?? 0;
     const periodoAnterior = indice > 0 ? buckets[indice - 1] : null;
     const grupoAnterior = periodoAnterior
-      ? grupos.get(`${periodoAnterior}|${grupo.code}`)
+      ? grupos.get(`${periodoAnterior}|${sucursal}`)
       : undefined;
-    const ventas = ventasNetas(grupo.lineas);
+    const actual = kpisDe(grupo);
+
     filas.push({
-      periodo: grupo.periodo,
-      sucursalCode: grupo.code,
-      sucursal: grupo.sucursal,
-      ventas,
-      unidades: unidadesNetas(grupo.lineas),
-      transacciones: transacciones(grupo.lineas),
-      variacionVentas: grupoAnterior ? variacion(ventas, ventasNetas(grupoAnterior.lineas)) : null,
+      periodo,
+      sucursalCode: sucursal,
+      sucursal,
+      ventas: actual.ventasNetas,
+      unidades: actual.unidades,
+      transacciones: actual.transacciones,
+      variacionVentas: grupoAnterior
+        ? variacion(actual.ventasNetas, ventasNetas(grupoAnterior))
+        : null,
     });
   }
 

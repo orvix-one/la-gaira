@@ -3,8 +3,8 @@ import {
   type CoberturaDatos,
   type FiltrosGlobales,
   type RangoFechas,
-  type SalesSource,
 } from "@/domain/sales";
+import type { SalesSource } from "@/infrastructure/data/sales-source";
 
 /**
  * Parámetros crudos de URL → filtros efectivos.
@@ -19,8 +19,8 @@ export async function resolverFiltros(
   source: SalesSource,
 ): Promise<{ filtros: FiltrosGlobales; cobertura: CoberturaDatos }> {
   const [cobertura, sucursales] = await Promise.all([
-    source.fetchCobertura(),
-    source.fetchSucursales(),
+    source.obtenerCobertura(),
+    source.obtenerSucursales(),
   ]);
 
   const rango = rangoDesdeParams(params, cobertura);

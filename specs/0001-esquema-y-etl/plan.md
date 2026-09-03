@@ -15,9 +15,9 @@ implementación aprobado). Resumen:
    `fact_venta_documento` (grano: operación/ticket) y `fact_venta_linea` (grano: línea,
    PK sintética `venta_linea_id`). Las columnas de significado no verificable llevan
    `COMMENT ... 'desambiguar: ...'`. Derivadas incluidas: `es_fiscal`, `es_sin_cargo`,
-   `canal_venta` (heurístico, `canal_es_inferido = true`), `es_duplicado_sospechoso`.
-3. **Semántica**: `vw_ventas` (línea + documento + dimensiones, excluye duplicados) y
-   `vw_tickets` (documento, excluye duplicados) — lo único que la app consulta.
+   `canal_venta` (heurístico, `canal_es_inferido = true`), `en_cuarentena`.
+3. **Semántica**: `vw_ventas` (línea + documento + dimensiones) y `vw_tickets`
+   (documento) publican exactamente las mismas operaciones reconciliadas y no anuladas.
 
 Auditoría: `etl_run` y `etl_issue` registran cada corrida y sus validaciones.
 
@@ -55,7 +55,7 @@ de `data/raw/`. Sin merge, sin estado entre corridas.
 | DuckDB persistente vs. solo Parquet vs. Postgres | Parquet + DuckDB in-memory por request; Postgres con migraciones | DuckDB persistente da DDL versionado real sin agregar infra de servidor; `@duckdb/node-api` ya está instalado. Postgres es prematuro antes de la Fase 5 (backend robusto, condicional a aprobación del cliente). |
 | Claves naturales (sin surrogates) | IDs autoincrementales en todas las tablas | Con full refresh los surrogates no aportan estabilidad entre corridas; las claves del origen (`Operación`, `Código`, `Sucursal`) ya son únicas y legibles en SQL. Única excepción: `venta_linea_id` sintético, porque la línea no tiene clave natural. |
 | Staging fiel + comentarios `desambiguar` | Solo columnas 100% seguras; o todo en una tabla ancha con comentarios | Preserva la fidelidad total (nada se pierde ni hay que reprocesar el Excel si una columna dudosa resulta importante) sin ensuciar el modelo canónico con incertidumbre no resuelta. |
-| Marcar duplicados, no borrarlos | Borrar la mitad sobrante; cargar todo sin marcar | El dato crudo queda íntegro y auditable; las vistas de analítica excluyen los duplicados por defecto, así que el efecto práctico es el mismo que borrar pero reversible. |
+| Cuarentena por operación completa | Corregir la mitad duplicada; publicar líneas parciales | La operación es la unidad de integridad. Si su detalle no reconcilia con `total_factura`, documento y líneas quedan auditables pero fuera de ambas vistas semánticas. |
 | Full refresh idempotente | Upsert por período; append con `carga_id` | Volumen mensual (~70k filas) hace la reconstrucción completa trivial en tiempo; evita mantener lógica de merge o esquema de lotes antes de que exista una necesidad real. |
 | SQL-first (tres `.sql` + orquestador TS delgado) | Toda la lógica en TypeScript con un query builder | Mantenibilidad media: SQL legible y diffable es más fácil de auditar por alguien que no escribió el pipeline que TypeScript con transformaciones dispersas. |
 
