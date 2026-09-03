@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "etl": "node etl/run.mts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.5-r.4",

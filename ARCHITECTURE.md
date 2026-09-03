@@ -4,8 +4,8 @@
 
 1. **Fase 0 — Toolchain**. Node 24, Next 16.3, React 19.2, Tailwind v4.
 2. **Boilerplate**. TypeScript estricto, ESLint, estructura de carpetas DDD-lite, documentación.
-3. **Esquema + ETL**. Excel de muestra → Parquet, con el contrato canónico (`FactVentaLinea`) definido en `src/domain/sales`.
-4. **UI de las 3 páginas**. Dashboard, sucursal, productos. Incluye la elección de librería de charts (shadcn/ui + Recharts, o Tremor Raw).
+3. **Esquema + ETL** — hecha. Excel/CSV → DuckDB (`data/processed/gaira.duckdb`), con el contrato canónico (`FactVentaLinea`) definido en `src/domain/sales`. Ver `etl/README.md` y `specs/0001-esquema-y-etl/`.
+4. **UI de las páginas de analítica**. El dashboard, sucursal y productos de la Fase 4 original son solo el punto de partida — el sistema tendrá más páginas de analítica con el tiempo, todas sobre el mismo contrato canónico. Incluye la elección de librería de charts (shadcn/ui + Recharts, o Tremor Raw).
 5. **Backend robusto + BD** (condicional a aprobación del cliente).
 
 ## Arquitectura: DDD-lite por capas + ports & adapters
@@ -20,16 +20,18 @@ src/application    (casos de uso: orquestan queries)
 src/domain         (contrato canónico, sin dependencias salientes)
       ▲
       │
-src/infrastructure (port SalesSource + adapters: parquet, ERP futuro)
+src/infrastructure (port SalesSource + adapters: DuckDB, ERP futuro)
 ```
 
 `domain` no depende de ninguna otra capa; todas las demás dependen de `domain`, directa o indirectamente. `infrastructure` implementa el port que `domain`/`application` definen, no al revés (inversión de dependencias).
 
 ## El seam de datos
 
-El port `SalesSource` (`src/infrastructure/data`) existe para que la fuente de datos sea intercambiable sin tocar la UI. Hoy los datos vienen de un Parquet generado por la ETL a partir de un Excel de muestra (`data/raw/SampleDataLaGaira.xlsx`); el día que la fuente sea el ERP de la empresa, se escribe un adapter nuevo que implemente el mismo port y la UI no cambia. Lo único que debe sobrevivir a ese cambio es el contrato canónico en `src/domain/sales`.
+El port `SalesSource` (`src/infrastructure/data`) existe para que la fuente de datos sea intercambiable sin tocar la UI. Hoy los datos vienen de `data/processed/gaira.duckdb`, una base DuckDB reconstruida por `npm run etl` (`etl/`) a partir de los archivos de `data/raw/` (el Excel de muestra, `SampleDataLaGaira.xlsx`, o los CSV que el cliente vaya subiendo); el día que la fuente sea el ERP de la empresa, se escribe un adapter nuevo que implemente el mismo port y la UI no cambia. Lo único que debe sobrevivir a ese cambio es el contrato canónico en `src/domain/sales`.
+
+La ETL es hoy el único método de ingesta y podría seguir siéndolo indefinidamente (una implementación llave en mano donde el cliente sube archivos periódicamente); por eso `npm run etl` es un full refresh idempotente — cada corrida reconstruye la base completa desde cero, sin estado ni merge entre corridas. El esquema de datos (`etl/schema.sql`) es la pieza de mayor vida útil de esta fase: soporta hoy las páginas de analítica planeadas y las que se agreguen después, aunque los adapters y scripts que lo alimentan sean desechables.
 
 ## Qué es desechable vs. permanente
 
-- **Desechable**: los adapters de esta fase (parquet) y los scripts de `etl/`. Se reemplazan sin ceremonia cuando cambia la fuente.
-- **Permanente**: el contrato canónico (`src/domain/sales`) y la capa de presentación (`src/app`, `src/ui`).
+- **Desechable**: los adapters de esta fase (DuckDB) y los scripts de `etl/`. Se reemplazan sin ceremonia cuando cambia la fuente.
+- **Permanente**: el esquema de datos (`etl/schema.sql`), el contrato canónico (`src/domain/sales`) y la capa de presentación (`src/app`, `src/ui`).
