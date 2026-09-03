@@ -13,6 +13,7 @@ Fuente única de verdad para cualquier agente (Claude Code, Codex, Kimi, etc.) q
 | TypeScript | 6.0.3 (fijado; ver nota abajo) |
 | ESLint | 9.39.5 (fijado; ver nota abajo) |
 | Tailwind CSS | 4.3.3 (CSS-first, sin `tailwind.config.js`) |
+| Recharts | 3.10.1 — charts encapsulados en `src/ui/charts` |
 | zod | 4.5.4 — validación de contratos/inputs |
 | @duckdb/node-api | 1.5.5-r.4 |
 
@@ -49,7 +50,7 @@ specs/                      # Spec-Driven Development. Ver specs/README.md.
 2. El contrato de datos (`src/domain/sales`) es la frontera sagrada. La UI **nunca** lee columnas crudas del Excel/CSV/ERP; solo consume el contrato canónico.
 3. La obtención de datos pasa **siempre** por el port `SalesSource` (`src/infrastructure/data`). Hoy el adapter es DuckDB (`data/processed/gaira.duckdb`, generado por `npm run etl`); mañana el ERP. Ningún componente importa un adapter directamente.
 4. Dirección de dependencias: `app → application → domain ← infrastructure`. `domain` no importa de ninguna otra capa.
-5. Charts: librería por decidir en la fase de UI (candidatos: shadcn/ui + Recharts, o Tremor Raw). Prohibido: `@tremor/react` clásico (incompatible con Tailwind v4).
+5. Charts: Recharts 3.10.1, encapsulado exclusivamente en `src/ui/charts`. Prohibido importar Recharts desde páginas o casos de uso y usar `@tremor/react` clásico.
 6. Estado de filtros compartible vía URL con `nuqs`.
 7. Estilos: Tailwind v4 (CSS-first).
 8. Runtime: Node 24 LTS (ver `.nvmrc`).
