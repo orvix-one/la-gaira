@@ -5,7 +5,7 @@
 1. **Fase 0 — Toolchain**. Node 24, Next 16.3, React 19.2, Tailwind v4.
 2. **Boilerplate**. TypeScript estricto, ESLint, estructura de carpetas DDD-lite, documentación.
 3. **Esquema + ETL** — hecha. Excel/CSV → DuckDB (`data/processed/gaira.duckdb`), con el contrato canónico (`FactVentaLinea`) definido en `src/domain/sales`. Ver `etl/README.md` y `specs/0001-esquema-y-etl/`.
-4. **UI de las páginas de analítica**. El dashboard, sucursal y productos de la Fase 4 original son solo el punto de partida — el sistema tendrá más páginas de analítica con el tiempo, todas sobre el mismo contrato canónico. Incluye la elección de librería de charts (shadcn/ui + Recharts, o Tremor Raw).
+4. **UI de las páginas de analítica**. Ventas General, sucursales y productos sobre el contrato canónico; Recharts 3.10.1 encapsulado en `src/ui/charts`. Incluye dos placeholders para vistas futuras configurables.
 5. **Backend robusto + BD** (condicional a aprobación del cliente).
 
 ## Arquitectura: DDD-lite por capas + ports & adapters
