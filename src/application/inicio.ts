@@ -1,12 +1,8 @@
-import {
-  type CoberturaDatos,
-  type FiltrosGlobales,
-  type SalesSource,
-} from "@/domain/sales";
-import { filtrarPorSucursal, kpisDe, type KpiBase } from "./compartido";
+import type { CoberturaDatos, FiltrosGlobales } from "@/domain/sales";
+import type { SalesSource } from "@/infrastructure/data/sales-source";
+import { filtroFuente, kpisDe, type KpiBase } from "./compartido";
 
-/** Inicio/resumen (spec §10.1): acceso a última carga y a las tres vistas. */
-
+/** Inicio/resumen (spec §10.1): acceso a la última carga y a las tres vistas. */
 export interface InicioView {
   cobertura: CoberturaDatos;
   filtros: FiltrosGlobales;
@@ -19,17 +15,15 @@ export async function getInicio(
   filtros: FiltrosGlobales,
   cobertura: CoberturaDatos,
 ): Promise<InicioView> {
-  const [lineasCrudas, sucursales] = await Promise.all([
-    source.fetchLineas(filtros.rango),
-    source.fetchSucursales(),
+  const [tickets, sucursales] = await Promise.all([
+    source.obtenerTickets(filtroFuente(filtros)),
+    source.obtenerSucursales(),
   ]);
-  const lineas = filtrarPorSucursal(lineasCrudas, filtros);
-  const kpis = kpisDe(lineas);
 
   return {
     cobertura,
     filtros,
-    kpis,
+    kpis: kpisDe(tickets),
     sucursalesActivas: sucursales.length,
   };
 }

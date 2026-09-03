@@ -1,5 +1,3 @@
-import { ISO_DATE_REGEX } from "./contract";
-
 /**
  * Filtros globales compartidos por las tres vistas (spec §6.3, RF-020).
  * Las fechas son ISO `YYYY-MM-DD` y el rango es inclusivo (spec §9.1).
@@ -15,6 +13,20 @@ export interface FiltrosGlobales {
   /** Código de sucursal; `undefined` = todas. */
   sucursal?: string;
 }
+
+export interface Sucursal {
+  code: string;
+  name: string;
+}
+
+export interface CoberturaDatos {
+  desde: string | null;
+  hasta: string | null;
+  ultimaCargaAt: string;
+  fuente: string;
+}
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export function esFechaIsoValida(valor: string): boolean {
   if (!ISO_DATE_REGEX.test(valor)) return false;

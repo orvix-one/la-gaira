@@ -1,4 +1,5 @@
-import type { FactVentaLinea } from "./contract";
+import type { FactVentaLinea } from "./fact-venta-linea";
+import type { TicketVenta } from "./ticket-venta";
 
 /**
  * Fórmulas de KPI según spec §9.2. Funciones puras, sin dependencias,
@@ -6,54 +7,48 @@ import type { FactVentaLinea } from "./contract";
  *
  * Convenciones (spec §9.1):
  * - Todos los KPIs se calculan sobre el mismo conjunto filtrado.
- * - Las anuladas quedan excluidas de la analítica.
+ * - `vw_ventas` y `vw_tickets` ya excluyen anuladas y operaciones en
+ *   cuarentena; estas funciones no corrigen datos silenciosamente.
  * - Una comparación cuyo periodo anterior sea cero se muestra como `—`
  *   (aquí: `null`).
  */
 
-/** Líneas que participan en la analítica: publicadas y no anuladas. */
+/** Líneas que participan en la analítica; la vista ya entrega solo datos publicados. */
 export function lineasAnaliticas(lineas: readonly FactVentaLinea[]): FactVentaLinea[] {
-  return lineas.filter((l) => !l.isVoided);
+  return [...lineas];
 }
 
 /**
- * Ventas netas: `SUM(invoice_total_amount)` una sola vez por
- * `source_transaction_id` válido y no anulado. Nunca se suma el total de
- * factura repetido en cada línea (spec §9.2, indicador oficial).
+ * Ventas netas: `SUM(total_factura)` una sola vez por
+ * operación válida. `vw_tickets` tiene una fila por operación, evitando
+ * sumar `Total Factura` repetido por línea (spec §9.2).
  */
-export function ventasNetas(lineas: readonly FactVentaLinea[]): number {
-  const vistos = new Set<string>();
+export function ventasNetas(tickets: readonly TicketVenta[]): number {
   let total = 0;
-  for (const linea of lineasAnaliticas(lineas)) {
-    if (vistos.has(linea.sourceTransactionId)) continue;
-    vistos.add(linea.sourceTransactionId);
-    total += linea.invoiceTotalAmount;
-  }
+  for (const ticket of tickets) total += ticket.totalFactura;
   return total;
 }
 
 /**
- * Ventas atribuidas a productos: `SUM(line_net_amount)` de operaciones
+ * Ventas atribuidas a productos: `SUM(importe)` de operaciones
  * válidas y no anuladas. Base de la vista Productos (spec §9.2).
  */
 export function ventasAtribuidas(lineas: readonly FactVentaLinea[]): number {
   let total = 0;
-  for (const linea of lineasAnaliticas(lineas)) total += linea.lineNetAmount;
+  for (const linea of lineasAnaliticas(lineas)) total += linea.importe;
   return total;
 }
 
-/** Unidades netas: `SUM(quantity)`, incluye devoluciones negativas. */
-export function unidadesNetas(lineas: readonly FactVentaLinea[]): number {
+/** Unidades netas: `SUM(unidades)`, incluye devoluciones negativas. */
+export function unidadesNetas(tickets: readonly TicketVenta[]): number {
   let total = 0;
-  for (const linea of lineasAnaliticas(lineas)) total += linea.quantity;
+  for (const ticket of tickets) total += ticket.unidades;
   return total;
 }
 
-/** Transacciones: `COUNT(DISTINCT source_transaction_id)` válidas y no anuladas. */
-export function transacciones(lineas: readonly FactVentaLinea[]): number {
-  const vistos = new Set<string>();
-  for (const linea of lineasAnaliticas(lineas)) vistos.add(linea.sourceTransactionId);
-  return vistos.size;
+/** Transacciones: una fila válida de `vw_tickets` equivale a una operación. */
+export function transacciones(tickets: readonly TicketVenta[]): number {
+  return tickets.length;
 }
 
 /** Ticket promedio: `ventas_netas / transacciones`. `null` si no hay transacciones. */

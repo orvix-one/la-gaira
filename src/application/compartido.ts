@@ -2,7 +2,6 @@ import {
   bucketsDelRango,
   claveBucket,
   granularidadPara,
-  lineasAnaliticas,
   rangoAnterior,
   ticketPromedio,
   transacciones,
@@ -11,35 +10,16 @@ import {
   type FactVentaLinea,
   type FiltrosGlobales,
   type Granularidad,
+  type TicketVenta,
 } from "@/domain/sales";
-
-/** Utilidades compartidas por los casos de uso de analítica. */
-
-export function filtrarPorSucursal(
-  lineas: readonly FactVentaLinea[],
-  filtros: FiltrosGlobales,
-): FactVentaLinea[] {
-  if (!filtros.sucursal) return [...lineas];
-  return lineas.filter((l) => l.branchCode === filtros.sucursal);
-}
+import type { FiltroVentas } from "@/domain/sales/filtros";
+import type { SalesSource } from "@/infrastructure/data/sales-source";
 
 export interface KpiBase {
   ventasNetas: number;
   unidades: number;
   transacciones: number;
   ticketPromedio: number | null;
-}
-
-/** KPIs núcleo (spec §9.2) sobre un conjunto de líneas ya filtrado. */
-export function kpisDe(lineas: readonly FactVentaLinea[]): KpiBase {
-  const ventas = ventasNetas(lineas);
-  const txns = transacciones(lineas);
-  return {
-    ventasNetas: ventas,
-    unidades: unidadesNetas(lineas),
-    transacciones: txns,
-    ticketPromedio: ticketPromedio(ventas, txns),
-  };
 }
 
 export interface PuntoTemporal {
@@ -52,43 +32,69 @@ export interface SerieTemporal {
   puntos: PuntoTemporal[];
 }
 
-/**
- * Serie temporal de ventas netas sin huecos: cada bucket del rango aparece
- * aunque no tenga ventas. La deduplicación por `source_transaction_id` se
- * hace dentro de cada bucket (las líneas de una operación comparten fecha).
- */
+export function filtroFuente(
+  filtros: FiltrosGlobales,
+  rango = filtros.rango,
+): FiltroVentas {
+  return {
+    desde: rango.desde,
+    hasta: rango.hasta,
+    sucursales: filtros.sucursal ? [filtros.sucursal] : undefined,
+  };
+}
+
+/** KPIs núcleo sobre `vw_tickets`, una fila por operación válida. */
+export function kpisDe(tickets: readonly TicketVenta[]): KpiBase {
+  const ventas = ventasNetas(tickets);
+  const txns = transacciones(tickets);
+  return {
+    ventasNetas: ventas,
+    unidades: unidadesNetas(tickets),
+    transacciones: txns,
+    ticketPromedio: ticketPromedio(ventas, txns),
+  };
+}
+
+/** Serie de ventas oficiales sin huecos, construida desde `vw_tickets`. */
 export function serieTemporalDe(
-  lineas: readonly FactVentaLinea[],
+  tickets: readonly TicketVenta[],
   filtros: FiltrosGlobales,
 ): SerieTemporal {
   const granularidad = granularidadPara(filtros.rango);
   const buckets = bucketsDelRango(filtros.rango, granularidad);
-  const porBucket = new Map<string, { vistos: Set<string>; ventas: number }>(
-    buckets.map((b) => [b, { vistos: new Set(), ventas: 0 }]),
-  );
+  const porBucket = new Map(buckets.map((bucket) => [bucket, 0]));
 
-  for (const linea of lineasAnaliticas(lineas)) {
-    const clave = claveBucket(linea.saleDate, granularidad);
-    const bucket = porBucket.get(clave);
-    if (!bucket || bucket.vistos.has(linea.sourceTransactionId)) continue;
-    bucket.vistos.add(linea.sourceTransactionId);
-    bucket.ventas += linea.invoiceTotalAmount;
+  for (const ticket of tickets) {
+    const bucket = claveBucket(ticket.fechaTurno, granularidad);
+    if (porBucket.has(bucket)) {
+      porBucket.set(bucket, (porBucket.get(bucket) ?? 0) + ticket.totalFactura);
+    }
   }
 
   return {
     granularidad,
-    puntos: buckets.map((b) => ({ periodo: b, ventas: porBucket.get(b)?.ventas ?? 0 })),
+    puntos: buckets.map((periodo) => ({ periodo, ventas: porBucket.get(periodo) ?? 0 })),
   };
 }
 
-/** Par de conjuntos actual/anterior para los cálculos con variación. */
-export async function cargarActualYAnterior(
-  fetchLineas: (rango: FiltrosGlobales["rango"]) => Promise<FactVentaLinea[]>,
+export async function cargarTicketsActualYAnterior(
+  source: SalesSource,
+  filtros: FiltrosGlobales,
+): Promise<{ actual: TicketVenta[]; anterior: TicketVenta[] }> {
+  const [actual, anterior] = await Promise.all([
+    source.obtenerTickets(filtroFuente(filtros)),
+    source.obtenerTickets(filtroFuente(filtros, rangoAnterior(filtros.rango))),
+  ]);
+  return { actual, anterior };
+}
+
+export async function cargarLineasActualYAnterior(
+  source: SalesSource,
   filtros: FiltrosGlobales,
 ): Promise<{ actual: FactVentaLinea[]; anterior: FactVentaLinea[] }> {
   const [actual, anterior] = await Promise.all([
-    fetchLineas(filtros.rango),
-    fetchLineas(rangoAnterior(filtros.rango)),
+    source.obtenerLineas(filtroFuente(filtros)),
+    source.obtenerLineas(filtroFuente(filtros, rangoAnterior(filtros.rango))),
   ]);
   return { actual, anterior };
 }

@@ -79,13 +79,12 @@ JOIN fact_venta_documento d USING (operacion_id)
 WHERE d.es_fiscal AND l.importe > 0 AND l.iva = 0
 HAVING count(*) > 0;
 
--- 9. Documentos descuadrados (SUM(líneas) != total_factura) — señal de calidad de origen,
---    se reporta exista o no el remediation flag de duplicados.
+-- 9. Operaciones en cuarentena: se conservan completas, pero no se publican.
 INSERT INTO etl_issue
-SELECT getvariable('run_id'), 'warning', 'documento_descuadrado',
-       'Documentos donde importe_lineas != total_factura (tolerancia 0.02)', count(*)
+SELECT getvariable('run_id'), 'warning', 'operacion_en_cuarentena',
+       'Operaciones excluidas: importe_lineas != total_factura (tolerancia 0.02)', count(*)
 FROM fact_venta_documento
-WHERE abs(descuadre) > 0.02
+WHERE en_cuarentena
 HAVING count(*) > 0;
 
 -- 10. Líneas sin cargo: puramente informativo, para comparar entre cargas.
@@ -105,10 +104,23 @@ FROM fact_venta_documento
 WHERE canal_venta <> 'SALON'
 HAVING count(*) > 0;
 
--- 12. Documentos marcados como sospechosos de duplicación completa.
+-- 12. Filas conservadas en cuarentena para auditoría.
 INSERT INTO etl_issue
-SELECT getvariable('run_id'), 'info', 'documento_duplicado_marcado',
-       'Documentos marcados es_duplicado_sospechoso (excluidos de vw_tickets)', count(*)
-FROM fact_venta_documento
-WHERE es_duplicado_sospechoso
+SELECT getvariable('run_id'), 'info', 'lineas_en_cuarentena',
+       'Líneas excluidas de vw_ventas por pertenecer a operaciones inconsistentes', count(*)
+FROM fact_venta_linea
+WHERE en_cuarentena
+HAVING count(*) > 0;
+
+-- 13. Las dos vistas semánticas deben compartir la misma frontera de publicación.
+INSERT INTO etl_issue
+SELECT getvariable('run_id'), 'error', 'operaciones_publicadas_reconciliadas',
+       'Operaciones publicadas donde SUM(vw_ventas.importe) != vw_tickets.total_factura', count(*)
+FROM (
+  SELECT t.operacion_id
+  FROM vw_tickets t
+  JOIN vw_ventas v USING (operacion_id)
+  GROUP BY t.operacion_id, t.total_factura
+  HAVING abs(sum(v.importe) - t.total_factura) > 0.02
+)
 HAVING count(*) > 0;

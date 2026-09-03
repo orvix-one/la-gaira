@@ -2,7 +2,7 @@
 
 - [ ] `etl/schema.sql` — staging, dimensiones, hechos, auditoría, vistas semánticas, `COMMENT ON COLUMN` en las columnas `desambiguar`
 - [ ] `etl/run.mts` — descubrimiento de archivos, mapeo de encabezados (`ALIASES`), carga a staging, orquestación, `.tmp` + rename atómico, `etl-report.json`
-- [ ] `etl/transform.sql` — casteo de fechas/números, población de dimensiones y hechos, derivadas (`es_fiscal`, `es_sin_cargo`, `canal_venta`, `es_duplicado_sospechoso`)
+- [ ] `etl/transform.sql` — casteo de fechas/números, población de dimensiones y hechos, derivadas (`es_fiscal`, `es_sin_cargo`, `canal_venta`, `en_cuarentena` por operación completa)
 - [ ] `etl/checks.sql` — validaciones con severidad `error|warning|info`
 - [ ] `etl/README.md` — qué hace, cómo correrlo, qué columnas se descartan y por qué
 - [ ] `"etl": "node etl/run.mts"` en `package.json`

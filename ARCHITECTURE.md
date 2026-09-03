@@ -29,6 +29,11 @@ src/infrastructure (port SalesSource + adapters: DuckDB, ERP futuro)
 
 El port `SalesSource` (`src/infrastructure/data`) existe para que la fuente de datos sea intercambiable sin tocar la UI. Hoy los datos vienen de `data/processed/gaira.duckdb`, una base DuckDB reconstruida por `npm run etl` (`etl/`) a partir de los archivos de `data/raw/` (el Excel de muestra, `SampleDataLaGaira.xlsx`, o los CSV que el cliente vaya subiendo); el día que la fuente sea el ERP de la empresa, se escribe un adapter nuevo que implemente el mismo port y la UI no cambia. Lo único que debe sobrevivir a ese cambio es el contrato canónico en `src/domain/sales`.
 
+La aplicación consulta `vw_tickets` para métricas de comprobante y `vw_ventas` para
+analítica de producto. Ambas vistas publican el mismo conjunto de operaciones reconciliadas
+y no anuladas; las operaciones inconsistentes completas permanecen en las tablas canónicas
+con `en_cuarentena = true` para auditoría.
+
 La ETL es hoy el único método de ingesta y podría seguir siéndolo indefinidamente (una implementación llave en mano donde el cliente sube archivos periódicamente); por eso `npm run etl` es un full refresh idempotente — cada corrida reconstruye la base completa desde cero, sin estado ni merge entre corridas. El esquema de datos (`etl/schema.sql`) es la pieza de mayor vida útil de esta fase: soporta hoy las páginas de analítica planeadas y las que se agreguen después, aunque los adapters y scripts que lo alimentan sean desechables.
 
 ## Qué es desechable vs. permanente

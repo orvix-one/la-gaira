@@ -14,8 +14,8 @@ export default async function DashboardLayout({
 }) {
   const source = getSalesSource();
   const [sucursales, cobertura] = await Promise.all([
-    source.fetchSucursales(),
-    source.fetchCobertura(),
+    source.obtenerSucursales(),
+    source.obtenerCobertura(),
   ]);
 
   return (

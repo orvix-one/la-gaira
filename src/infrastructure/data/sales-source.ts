@@ -1,5 +1,7 @@
 import type { FactVentaLinea } from "@/domain/sales/fact-venta-linea";
 import type { FiltroVentas } from "@/domain/sales/filtros";
+import type { CoberturaDatos, Sucursal } from "@/domain/sales/analitica";
+import type { TicketVenta } from "@/domain/sales/ticket-venta";
 
 // Port: la única forma en que application/ obtiene datos de venta. Hoy lo implementa el
 // adapter de DuckDB (src/infrastructure/data/adapters/duckdb-sales-source.ts); el día que
@@ -7,4 +9,7 @@ import type { FiltroVentas } from "@/domain/sales/filtros";
 // UI no cambia.
 export type SalesSource = {
   obtenerLineas(filtro?: FiltroVentas): Promise<FactVentaLinea[]>;
+  obtenerTickets(filtro?: FiltroVentas): Promise<TicketVenta[]>;
+  obtenerSucursales(): Promise<Sucursal[]>;
+  obtenerCobertura(): Promise<CoberturaDatos>;
 };
