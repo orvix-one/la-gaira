@@ -9,14 +9,18 @@ export function ChartCard({
   descripcion,
   children,
   className,
+  metricaId,
 }: {
   titulo: string;
   descripcion?: string;
   children: ReactNode;
   className?: string;
+  /** Identificador estable usado por compartir y exportar selectivamente. */
+  metricaId?: string;
 }) {
   return (
     <section
+      data-dashboard-metric={metricaId}
       className={`rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_28px_rgba(23,19,19,0.05)] sm:p-5 ${className ?? ""}`}
     >
       <header className="mb-4">

@@ -71,20 +71,22 @@ export default async function SucursalDetallePage({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <KpiCard titulo="Ventas netas" valor={formatMoney(view.kpis.ventasNetas)} />
-            <KpiCard titulo="Unidades" valor={formatNumber(view.kpis.unidades)} />
-            <KpiCard titulo="Transacciones" valor={formatNumber(view.kpis.transacciones)} />
+            <KpiCard metricaId="ventas_netas" titulo="Ventas netas" valor={formatMoney(view.kpis.ventasNetas)} />
+            <KpiCard metricaId="unidades" titulo="Unidades" valor={formatNumber(view.kpis.unidades)} />
+            <KpiCard metricaId="transacciones" titulo="Transacciones" valor={formatNumber(view.kpis.transacciones)} />
             <KpiCard
+              metricaId="ticket_promedio"
               titulo="Ticket promedio"
               valor={view.kpis.ticketPromedio === null ? "—" : formatMoney(view.kpis.ticketPromedio)}
             />
           </div>
 
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
-            <ChartCard titulo="Evolución de ventas" descripcion="Ventas netas · BOB">
+            <ChartCard metricaId="tendencia_ventas" titulo="Evolución de ventas" descripcion="Ventas netas · BOB">
               <TrendChart datos={view.tendencia} granularidad={view.granularidad} />
             </ChartCard>
             <ChartCard
+              metricaId="productos_principales"
               titulo="Productos principales"
               descripcion={`Top ${view.topProductos.length} por ventas atribuidas · BOB`}
             >

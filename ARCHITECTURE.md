@@ -36,6 +36,19 @@ con `en_cuarentena = true` para auditoría.
 
 La ETL es hoy el único método de ingesta y podría seguir siéndolo indefinidamente (una implementación llave en mano donde el cliente sube archivos periódicamente); por eso `npm run etl` es un full refresh idempotente — cada corrida reconstruye la base completa desde cero, sin estado ni merge entre corridas. El esquema de datos (`etl/schema.sql`) es la pieza de mayor vida útil de esta fase: soporta hoy las páginas de analítica planeadas y las que se agreguen después, aunque los adapters y scripts que lo alimentan sean desechables.
 
+## Dashboards compartidos
+
+Las vistas analíticas pueden generar enlaces temporales de solo lectura. La Server Action
+recibe únicamente la ruta, los filtros efectivos y las métricas seleccionadas y persiste esa referencia durante 24
+horas en `data/processed/shared-dashboards/`. Al abrirla, la aplicación ejecuta nuevamente
+los mismos casos de uso mediante `SalesSource` y presenta todos los KPIs, gráficos y filas
+de cada elemento seleccionado, pero sin navegación administrativa ni filtros mutables. El enlace usa un
+token aleatorio de 192 bits y la ruta pública `/compartir/[token]`.
+
+Esta persistencia es intencionalmente local, acorde con la fase actual basada en DuckDB.
+Cuando exista un backend distribuido, el store temporal deberá reemplazarse por una
+implementación compartida con TTL; el contrato del snapshot y la página pública se conservan.
+
 ## Qué es desechable vs. permanente
 
 - **Desechable**: los adapters de esta fase (DuckDB) y los scripts de `etl/`. Se reemplazan sin ceremonia cuando cambia la fuente.

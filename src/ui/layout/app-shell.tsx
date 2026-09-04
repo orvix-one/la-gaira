@@ -32,7 +32,7 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-canvas">
       {/* Sidebar escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/10 bg-[#090707] lg:flex">
+      <aside data-print-hidden className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/10 bg-[#090707] lg:flex">
         <div className="h-1 bg-brand-500" />
         <div className="flex items-center gap-3 px-5 py-6">
           <Image
@@ -59,7 +59,7 @@ export function AppShell({
       </aside>
 
       {/* Header móvil */}
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-brand-500 bg-[#090707] px-4 lg:hidden">
+      <header data-print-hidden className="sticky top-0 z-30 flex items-center gap-3 border-b border-brand-500 bg-[#090707] px-4 lg:hidden">
         <button
           type="button"
           onClick={() => setMenuAbierto(true)}
@@ -76,7 +76,7 @@ export function AppShell({
 
       {/* Drawer móvil */}
       {menuAbierto ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div data-print-hidden className="fixed inset-0 z-40 lg:hidden">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
             onClick={() => setMenuAbierto(false)}
@@ -101,8 +101,8 @@ export function AppShell({
       ) : null}
 
       {/* Contenido */}
-      <div className="lg:pl-64">
-        <div className="sticky top-11 z-20 lg:top-0">
+      <div data-print-content className="lg:pl-64">
+        <div data-print-hidden className="sticky top-11 z-20 lg:top-0">
           <Suspense fallback={<div className="h-14 border-b border-neutral-200 bg-white" />}>
             <FilterBar sucursales={sucursales} cobertura={cobertura} />
           </Suspense>

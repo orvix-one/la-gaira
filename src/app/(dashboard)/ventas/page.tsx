@@ -40,21 +40,25 @@ export default async function VentasPage({
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <KpiCard
+              metricaId="ventas_netas"
               titulo="Ventas netas"
               valor={formatMoney(view.kpis.ventasNetas.valor ?? 0)}
               variacion={formatVariation(view.kpis.ventasNetas.variacion)}
             />
             <KpiCard
+              metricaId="unidades"
               titulo="Unidades"
               valor={formatNumber(view.kpis.unidades.valor ?? 0)}
               variacion={formatVariation(view.kpis.unidades.variacion)}
             />
             <KpiCard
+              metricaId="transacciones"
               titulo="Transacciones"
               valor={formatNumber(view.kpis.transacciones.valor ?? 0)}
               variacion={formatVariation(view.kpis.transacciones.variacion)}
             />
             <KpiCard
+              metricaId="ticket_promedio"
               titulo="Ticket promedio"
               valor={
                 view.kpis.ticketPromedio.valor === null
@@ -67,6 +71,7 @@ export default async function VentasPage({
 
           <div className="mt-4 grid gap-4 xl:grid-cols-5">
             <ChartCard
+              metricaId="tendencia_ventas"
               titulo="Evolución de ventas"
               descripcion={`Ventas netas por ${view.granularidad === "dia" ? "día" : view.granularidad === "semana" ? "semana" : "mes"} · BOB`}
               className="xl:col-span-3"
@@ -74,6 +79,7 @@ export default async function VentasPage({
               <TrendChart datos={view.tendencia} granularidad={view.granularidad} />
             </ChartCard>
             <ChartCard
+              metricaId="ventas_sucursal"
               titulo="Ventas por sucursal"
               descripcion="Ordenadas de mayor a menor · BOB"
               className="xl:col-span-2"
@@ -84,7 +90,7 @@ export default async function VentasPage({
             </ChartCard>
           </div>
 
-          <div className="mt-4">
+          <div data-dashboard-metric="desempeno" className="mt-4">
             <h2 className="mb-2 text-sm font-semibold text-neutral-950">
               Desempeño por periodo y sucursal
             </h2>

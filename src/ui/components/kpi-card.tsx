@@ -8,6 +8,7 @@ export function KpiCard({
   valor,
   variacion,
   ayuda,
+  metricaId,
 }: {
   titulo: string;
   valor: string;
@@ -15,9 +16,11 @@ export function KpiCard({
   variacion?: string;
   /** Dirección para flecha y color: sube, baja o neutral/sin dato. */
   ayuda?: string;
+  /** Identificador estable usado por compartir y exportar selectivamente. */
+  metricaId?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_28px_rgba(23,19,19,0.05)] sm:p-5">
+    <div data-dashboard-metric={metricaId} className="relative overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_28px_rgba(23,19,19,0.05)] sm:p-5">
       <span className="absolute inset-y-0 left-0 w-1 bg-brand-500" aria-hidden="true" />
       <p className="text-xs font-semibold tracking-[0.1em] text-neutral-500 uppercase">{titulo}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-neutral-950 tabular-nums">{valor}</p>
