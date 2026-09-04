@@ -46,4 +46,7 @@ solo para orquestación.
       alias de encabezado conocidos) y produce los mismos conteos/totales.
 - [ ] `src/infrastructure/data/adapters/duckdb-sales-source.ts` es el único archivo del repo
       que importa `@duckdb/node-api` fuera de `etl/`.
+- [ ] Toda operación cuyo detalle no reconcilia con `total_factura` queda completa en
+      cuarentena: ninguna de sus líneas aparece en `vw_ventas` ni el documento en
+      `vw_tickets`, pero ambos permanecen auditables en las tablas canónicas.
 - [ ] `npm run typecheck` y `npm run lint` pasan sin errores.
