@@ -18,7 +18,13 @@ type Clave = "sucursal" | "ventas" | "unidades" | "transacciones" | "ticket" | "
  * Tabla comparativa de sucursales (spec §9.4): ordenable, con búsqueda por
  * fila al detalle. Las sucursales sin ventas aparecen con cero.
  */
-export function SucursalesTable({ filas }: { filas: FilaSucursal[] }) {
+export function SucursalesTable({
+  filas,
+  enlacesDetalle = true,
+}: {
+  filas: FilaSucursal[];
+  enlacesDetalle?: boolean;
+}) {
   const tabla = useTabla<FilaSucursal, Clave>({
     datos: filas,
     claveInicial: "ventas",
@@ -59,12 +65,16 @@ export function SucursalesTable({ filas }: { filas: FilaSucursal[] }) {
             {tabla.filas.map((f) => (
               <tr key={f.code} className="hover:bg-brand-50/40">
                 <td className="px-3 py-2.5">
-                  <Link
-                    href={`/sucursales/${f.code}`}
-                    className="font-medium text-brand-700 underline-offset-2 hover:underline"
-                  >
-                    {f.sucursal}
-                  </Link>
+                  {enlacesDetalle ? (
+                    <Link
+                      href={`/sucursales/${f.code}`}
+                      className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                    >
+                      {f.sucursal}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-neutral-950">{f.sucursal}</span>
+                  )}
                 </td>
                 <td className="px-3 py-2.5 text-right font-medium text-neutral-950 tabular-nums">
                   {formatMoney(f.ventasNetas)}

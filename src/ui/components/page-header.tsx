@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { FiltrosGlobales } from "@/domain/sales";
 import { formatRango } from "../format";
+import { DashboardActions } from "./dashboard-actions";
 
 /**
  * Encabezado de vista: título + periodo activo + moneda (RF-025: la
@@ -37,7 +38,12 @@ export function PageHeader({
         ) : null}
         </div>
       </div>
-      {acciones ? <div>{acciones}</div> : null}
+      {acciones || filtros ? (
+        <div className="flex flex-wrap items-start justify-end gap-3">
+          {acciones}
+          {filtros ? <DashboardActions key={titulo} titulo={titulo} /> : null}
+        </div>
+      ) : null}
     </div>
   );
 }

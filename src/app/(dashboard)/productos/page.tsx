@@ -41,14 +41,16 @@ export default async function ProductosPage({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <KpiCard titulo="Productos vendidos" valor={formatNumber(view.totalProductos)} />
-            <KpiCard titulo="Categorías" valor={formatNumber(view.porCategoria.length)} />
+            <KpiCard metricaId="productos_vendidos" titulo="Productos vendidos" valor={formatNumber(view.totalProductos)} />
+            <KpiCard metricaId="categorias" titulo="Categorías" valor={formatNumber(view.porCategoria.length)} />
             <KpiCard
+              metricaId="producto_lider"
               titulo="Líder del periodo"
               valor={view.productos[0]?.nombre ?? "—"}
               ayuda={view.productos[0]?.categoria}
             />
             <KpiCard
+              metricaId="categoria_lider"
               titulo="Categoría líder"
               valor={view.porCategoria[0]?.categoria ?? "—"}
             />
@@ -56,6 +58,7 @@ export default async function ProductosPage({
 
           <div className="mt-4 grid gap-4 xl:grid-cols-5">
             <ChartCard
+              metricaId="ranking_productos"
               titulo={`Top ${TOP_GRAFICO} productos`}
               descripcion="Por ventas atribuidas · BOB"
               className="xl:col-span-3"
@@ -67,6 +70,7 @@ export default async function ProductosPage({
               />
             </ChartCard>
             <ChartCard
+              metricaId="distribucion_categorias"
               titulo="Distribución por categoría"
               descripcion="Participación en ventas del periodo"
               className="xl:col-span-2"
@@ -81,7 +85,7 @@ export default async function ProductosPage({
             </ChartCard>
           </div>
 
-          <div className="mt-4">
+          <div data-dashboard-metric="tabla_productos" className="mt-4">
             <h2 className="mb-2 text-sm font-semibold text-neutral-950">
               Todos los productos ({formatNumber(view.totalProductos)})
             </h2>

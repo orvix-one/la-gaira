@@ -70,3 +70,23 @@ export const IconFiltro = (p: IconProps) =>
   base(p, <path d="M4 5h16l-6 8v5l-4 2v-7Z" />);
 
 export const IconAtras = (p: IconProps) => base(p, <path d="M15 6l-6 6 6 6" />);
+
+export const IconCompartir = (p: IconProps) =>
+  base(
+    p,
+    <>
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5" />
+    </>,
+  );
+
+export const IconExportar = (p: IconProps) =>
+  base(
+    p,
+    <>
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+      <path d="M5 19v2h14v-2" />
+    </>,
+  );

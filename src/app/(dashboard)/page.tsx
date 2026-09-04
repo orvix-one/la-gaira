@@ -27,13 +27,14 @@ export default async function InicioPage({
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <KpiCard titulo="Ventas netas" valor={formatMoney(view.kpis.ventasNetas)} />
-        <KpiCard titulo="Transacciones" valor={formatNumber(view.kpis.transacciones)} />
+        <KpiCard metricaId="ventas_netas" titulo="Ventas netas" valor={formatMoney(view.kpis.ventasNetas)} />
+        <KpiCard metricaId="transacciones" titulo="Transacciones" valor={formatNumber(view.kpis.transacciones)} />
         <KpiCard
+          metricaId="ticket_promedio"
           titulo="Ticket promedio"
           valor={view.kpis.ticketPromedio === null ? "—" : formatMoney(view.kpis.ticketPromedio)}
         />
-        <KpiCard titulo="Sucursales" valor={formatNumber(view.sucursalesActivas)} />
+        <KpiCard metricaId="sucursales_activas" titulo="Sucursales" valor={formatNumber(view.sucursalesActivas)} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -57,7 +58,7 @@ export default async function InicioPage({
           ))}
       </div>
 
-      <section className="mt-6 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-[0_8px_28px_rgba(23,19,19,0.05)]">
+      <section data-dashboard-metric="estado_datos" className="mt-6 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-[0_8px_28px_rgba(23,19,19,0.05)]">
         <h2 className="text-sm font-semibold text-neutral-950">Estado de los datos</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           <div>

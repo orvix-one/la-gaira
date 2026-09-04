@@ -36,3 +36,38 @@ body {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
 }
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: white;
+    overflow: visible;
+  }
+
+  [data-print-hidden] {
+    display: none !important;
+  }
+
+  [data-export-hidden] {
+    display: none !important;
+  }
+
+  [data-print-content] {
+    padding-left: 0 !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  section,
+  table,
+  [class*="rounded-2xl"] {
+    break-inside: avoid;
+  }
+}

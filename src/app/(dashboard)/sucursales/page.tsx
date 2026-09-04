@@ -38,6 +38,7 @@ export default async function SucursalesPage({
         <>
           <div className="grid gap-4 xl:grid-cols-5">
             <ChartCard
+              metricaId="ranking_sucursales"
               titulo="Ranking por ventas netas"
               descripcion="Todas las sucursales del catálogo · BOB"
               className="xl:col-span-2"
@@ -47,6 +48,7 @@ export default async function SucursalesPage({
               />
             </ChartCard>
             <ChartCard
+              metricaId="tendencia_sucursales"
               titulo="Evolución comparada"
               descripcion="Las 5 sucursales con más ventas · BOB"
               className="xl:col-span-3"
@@ -55,7 +57,7 @@ export default async function SucursalesPage({
             </ChartCard>
           </div>
 
-          <div className="mt-4">
+          <div data-dashboard-metric="tabla_sucursales" className="mt-4">
             <h2 className="mb-2 text-sm font-semibold text-neutral-950">Detalle por sucursal</h2>
             <SucursalesTable filas={view.ranking} />
           </div>
