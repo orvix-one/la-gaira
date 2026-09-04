@@ -38,5 +38,6 @@ next-env.d.ts
 # data artifacts (derived from ETL, not source)
 /data/processed/*
 !/data/processed/.gitkeep
+!/data/processed/gaira.duckdb
 *.parquet
-*.duckdb*
+*.duckdb.tmp
